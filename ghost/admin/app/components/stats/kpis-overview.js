@@ -48,16 +48,15 @@ export default class KpisOverview extends Component {
 
     @action
     fetchDataIfNeeded() {
-        this.fetchData.perform(this.args.chartRange, this.args.audience);
+        this.fetchData.perform(this.args);
     }
 
     @task
-    *fetchData(chartRange, audience) {
+    *fetchData(args) {
         try {
             const params = new URLSearchParams(getStatsParams(
                 this.config,
-                chartRange,
-                audience
+                args
             ));
 
             const response = yield fetch(`${this.config.stats.endpoint}/v0/pipes/kpis.json?${params}`, {
@@ -97,7 +96,7 @@ export default class KpisOverview extends Component {
             avg_session_sec: Math.floor(_ponderatedKPIsTotal('avg_session_sec') / 60),
             pageviews: formatNumber(_KPITotal('pageviews')),
             visits: formatNumber(totalVisits),
-            bounce_rate: _ponderatedKPIsTotal('bounce_rate').toFixed(2)
+            bounce_rate: (_ponderatedKPIsTotal('bounce_rate') * 100).toFixed(0)
         };
     }
 

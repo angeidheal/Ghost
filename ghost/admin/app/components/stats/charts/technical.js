@@ -3,21 +3,37 @@
 import Component from '@glimmer/component';
 import React from 'react';
 import {DonutChart, useQuery} from '@tinybirdco/charts';
+import {action} from '@ember/object';
 import {formatNumber} from '../../../helpers/format-number';
 import {getStatsParams, statsStaticColors} from 'ghost-admin/utils/stats';
 import {inject} from 'ghost-admin/decorators/inject';
+import {inject as service} from '@ember/service';
+
 export default class TechnicalComponent extends Component {
+    @service router;
     @inject config;
 
+    @action
+    navigateToFilter(type, value) {
+        this.updateQueryParams({[type]: value});
+    }
+
+    @action
+    updateQueryParams(params) {
+        const currentRoute = this.router.currentRoute;
+        const newQueryParams = {...currentRoute.queryParams, ...params};
+
+        this.router.transitionTo({queryParams: newQueryParams});
+    }
+
     ReactComponent = (props) => {
-        const {chartRange, audience, selected} = props;
+        const {selected} = props;
 
         const colorPalette = statsStaticColors.slice(1, 5);
 
         const params = getStatsParams(
             this.config,
-            chartRange,
-            audience,
+            props,
             {limit: 5}
         );
 
@@ -44,7 +60,7 @@ export default class TechnicalComponent extends Component {
 
         const transformedData = (data ?? []).map((item, index) => ({
             name: item[indexBy].charAt(0).toUpperCase() + item[indexBy].slice(1),
-            value: item.hits,
+            value: item.visits,
             color: colorPalette[index]
         }));
 
@@ -53,18 +69,27 @@ export default class TechnicalComponent extends Component {
                 <table>
                     <thead>
                         <tr>
-                            <th><span className="gh-stats-detail-header">{tableHead}</span></th>
-                            <th><span className="gh-stats-detail-header">Visits</span></th>
+                            <th><span className="gh-stats-data-header">{tableHead}</span></th>
+                            <th><span className="gh-stats-data-header">Visits</span></th>
                         </tr>
                     </thead>
                     <tbody>
                         {transformedData.map((item, index) => (
                             <tr key={index}>
                                 <td>
-                                    <span style={{backgroundColor: item.color, display: 'inline-block', width: '10px', height: '10px', marginRight: '5px', borderRadius: '2px'}}></span>
-                                    {item.name}
+                                    <a
+                                        href="#"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            this.navigateToFilter(indexBy, item.name.toLowerCase());
+                                        }}
+                                        className="gh-stats-data-label"
+                                    >
+                                        <span style={{backgroundColor: item.color, display: 'inline-block', width: '10px', height: '10px', marginRight: '5px', borderRadius: '2px'}}></span>
+                                        {item.name}
+                                    </a>
                                 </td>
-                                <td>{formatNumber(item.value)}</td>
+                                <td><span className="gh-stats-data-value">{formatNumber(item.value)}</span></td>
                             </tr>
                         ))}
                     </tbody>
@@ -76,7 +101,7 @@ export default class TechnicalComponent extends Component {
                         loading={loading}
                         error={error}
                         index={indexBy}
-                        categories={['hits']}
+                        categories={['visits']}
                         colorPalette={colorPalette}
                         backgroundColor="transparent"
                         fontSize="13px"
